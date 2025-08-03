@@ -40,4 +40,4 @@ go.work.sum
 testdata/
 
 # External files
-.external/**
+external/

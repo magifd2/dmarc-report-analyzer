@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -52,6 +53,117 @@ func (r *Repository) ReportExistsByHash(xmlHash string) (bool, error) {
 		return false, fmt.Errorf("failed to query report by hash: %w", err)
 	}
 	return count > 0, nil
+}
+
+// GetReports retrieves a list of DMARC reports with pagination and sorting.
+func (r *Repository) GetReports(limit, offset int, sortBy, sortOrder string) ([]Report, int, error) {
+	var reports []Report
+	var totalCount int
+
+	// Get total count
+	err := r.db.QueryRow("SELECT COUNT(*) FROM reports").Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get total report count: %w", err)
+	}
+
+	// Validate sortBy and sortOrder to prevent SQL injection
+	validSortBy := map[string]bool{
+		"id": true, "org_name": true, "report_id": true, "date_range_begin": true, "domain": true,
+	}
+	validSortOrder := map[string]bool{
+		"asc": true, "desc": true,
+	}
+
+	if !validSortBy[sortBy] {
+		sortBy = "date_range_begin" // Default sort by
+	}
+	if !validSortOrder[strings.ToLower(sortOrder)] {
+		sortOrder = "desc" // Default sort order
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, xml_hash, original_xml, org_name, report_id, date_range_begin, date_range_end, domain, adkim, aspf, p, sp, pct
+		FROM reports
+		ORDER BY %s %s
+		LIMIT ? OFFSET ?
+	`, sortBy, sortOrder)
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query reports: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var report Report
+		err := rows.Scan(
+			&report.ID, &report.XMLHash, &report.OriginalXML, &report.OrgName, &report.ReportID,
+			&report.DateRangeBegin, &report.DateRangeEnd, &report.Domain, &report.ADKIM,
+			&report.ASPF, &report.P, &report.SP, &report.PCT,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan report row: %w", err)
+		}
+		reports = append(reports, report)
+	}
+
+	return reports, totalCount, nil
+}
+
+// GetReportByID retrieves a single DMARC report by its ID.
+func (r *Repository) GetReportByID(id int64) (*Report, error) {
+	var report Report
+	err := r.db.QueryRow(`
+		SELECT id, xml_hash, original_xml, org_name, report_id, date_range_begin, date_range_end, domain, adkim, aspf, p, sp, pct
+		FROM reports
+		WHERE id = ?
+	`, id).Scan(
+		&report.ID, &report.XMLHash, &report.OriginalXML, &report.OrgName, &report.ReportID,
+		&report.DateRangeBegin, &report.DateRangeEnd, &report.Domain, &report.ADKIM,
+		&report.ASPF, &report.P, &report.SP, &report.PCT,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Report not found
+		}
+		return nil, fmt.Errorf("failed to query report by ID: %w", err)
+	}
+	return &report, nil
+}
+
+// GetUserByUsername retrieves a user by their username.
+func (r *Repository) GetUserByUsername(username string) (*User, error) {
+	var user User
+	err := r.db.QueryRow("SELECT id, username, password_hash, created_at FROM users WHERE username = ?", username).Scan(
+		&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // User not found
+		}
+		return nil, fmt.Errorf("failed to query user by username: %w", err)
+	}
+	return &user, nil
+}
+
+// UpdateUser updates a user's information in the database.
+func (r *Repository) UpdateUser(user *User) error {
+	stmt, err := r.db.Prepare(`
+		UPDATE users
+		SET username = ?, password_hash = ?
+		WHERE id = ?
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement for updating user: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.Username, user.PasswordHash, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to execute statement for updating user: %w", err)
+	}
+	return nil
 }
 
 // SaveRecord saves a DMARC record to the database.

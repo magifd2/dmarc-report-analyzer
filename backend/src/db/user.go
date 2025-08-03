@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -43,41 +42,6 @@ func (r *Repository) CreateUser(username, password string) (*User, error) {
 	return user, nil
 }
 
-// GetUserByUsername retrieves a user by their username.
-func (r *Repository) GetUserByUsername(username string) (*User, error) {
-	user := &User{}
-	err := r.db.QueryRow("SELECT id, username, password_hash, created_at FROM users WHERE username = ?", username).Scan(
-		&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil // User not found
-		}
-		return nil, fmt.Errorf("failed to query user by username: %w", err)
-	}
-	return user, nil
-}
-
-// UpdateUserPassword updates a user's password.
-func (r *Repository) UpdateUserPassword(userID int64, newPassword string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("failed to hash new password: %w", err)
-	}
-
-	stmt, err := r.db.Prepare("UPDATE users SET password_hash = ? WHERE id = ?")
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement for updating password: %w", err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(string(hashedPassword), userID)
-	if err != nil {
-		return fmt.Errorf("failed to execute statement for updating password: %w", err)
-	}
-	return nil
-}
-
 // DeleteUser deletes a user by their ID.
 func (r *Repository) DeleteUser(userID int64) error {
 	stmt, err := r.db.Prepare("DELETE FROM users WHERE id = ?")
@@ -91,10 +55,4 @@ func (r *Repository) DeleteUser(userID int64) error {
 		return fmt.Errorf("failed to execute statement for deleting user: %w", err)
 	}
 	return nil
-}
-
-// VerifyPassword verifies a plain-text password against a hashed password.
-func VerifyPassword(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
 }

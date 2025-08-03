@@ -22,18 +22,21 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo "Building Go backend..."
+# Create build directory if it doesn't exist
+mkdir -p "$BUILD_DIR"
 # Build the Go application
 go build -o "$BUILD_DIR/$APP_NAME" src/main.go
 if [ $? -ne 0 ]; then
     echo "Go build failed."
     exit 1
-fi
+fi # Added missing fi
 echo "Build successful: $BUILD_DIR/$APP_NAME"
 
 echo "Starting server..."
-# Start the server in the background using nohup and record PID
-# JWT_SECRET is passed from the environment or defaults to a placeholder
-nohup bash -c "JWT_SECRET=\"your_very_long_and_secret_jwt_key_here_1234567890\" \"$BUILD_DIR/$APP_NAME\"" > "$LOG_FILE" 2>&1 &
+# Set JWT_SECRET for the nohup process. REPLACE THIS WITH YOUR ACTUAL SECRET.
+export JWT_SECRET="your_super_secret_jwt_key_at_least_32_chars_long"
+
+nohup "$BUILD_DIR/$APP_NAME" > "$LOG_FILE" 2>&1 &
 PID=$!
 echo "$PID" > "$PID_FILE"
 

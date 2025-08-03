@@ -19,13 +19,13 @@ import (
 
 const (
 	cityDBName = "ipinfo-city.mmdb"
-	asnDBName  = "ipinfo-asn.mmdb"
+	// asnDBName  = "ipinfo-asn.mmdb" // Removed as ASN info is in city DB
 )
 
 // Resolver provides methods to resolve IP addresses to geographical and ASN information.
 type Resolver struct {
 	CityDB *maxminddb.Reader // Exported
-	AsnDB  *maxminddb.Reader // Exported
+	// AsnDB  *maxminddb.Reader // Removed as ASN info is in city DB
 	dataDir string // Absolute path to the ip_geo data directory
 	mu     sync.RWMutex // Protects access to CityDB and AsnDB
 }
@@ -52,10 +52,10 @@ func (r *Resolver) LoadDatabases() error {
 		r.CityDB.Close()
 		r.CityDB = nil
 	}
-	if r.AsnDB != nil {
-		r.AsnDB.Close()
-		r.AsnDB = nil
-	}
+	// if r.AsnDB != nil { // Removed AsnDB handling
+	// 	r.AsnDB.Close()
+	// 	r.AsnDB = nil
+	// }
 
 	// Ensure the data directory exists
 	// Use r.dataDir which is already the absolute path to ip_geo directory
@@ -64,7 +64,7 @@ func (r *Resolver) LoadDatabases() error {
 	}
 
 	cityDBPath := filepath.Join(r.dataDir, cityDBName) // Use r.dataDir
-	asnDBPath := filepath.Join(r.dataDir, asnDBName)   // Use r.dataDir
+	// asnDBPath := filepath.Join(r.dataDir, asnDBName)   // Removed AsnDB handling
 
 	var errs []error
 
@@ -75,12 +75,13 @@ func (r *Resolver) LoadDatabases() error {
 		r.CityDB = cityDB
 	}
 
-	asnDB, err := maxminddb.Open(asnDBPath)
-	if err != nil {
-		errs = append(errs, fmt.Errorf("failed to open ASN database %s: %w", asnDBPath, err))
-	} else {
-		r.AsnDB = asnDB
-	}
+	// Removed AsnDB handling
+	// asnDB, err := maxminddb.Open(asnDBPath)
+	// if err != nil {
+	// 	errs = append(errs, fmt.Errorf("failed to open ASN database %s: %w", asnDBPath, err))
+	// } else {
+	// 	r.AsnDB = asnDB
+	// }
 
 	if len(errs) > 0 {
 		return fmt.Errorf("errors loading IP Geo databases: %v", errs)
@@ -104,7 +105,7 @@ func (r *Resolver) ResolveIP(ipStr string) (*db.IPInfo, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Use one of the DBs (e.g., CityDB) to lookup all available info
+	// Use CityDB to lookup all available info
 	var record struct {
 		CountryCode string `maxminddb:"country_code"`
 		CountryName string `maxminddb:"country"`
@@ -112,12 +113,10 @@ func (r *Resolver) ResolveIP(ipStr string) (*db.IPInfo, error) {
 		Organization string `maxminddb:"as_name"`
 	}
 
-	// Prioritize CityDB for lookup, fallback to AsnDB if CityDB is not loaded
+	// Only use CityDB for lookup
 	var lookupDB *maxminddb.Reader
 	if r.CityDB != nil {
 		lookupDB = r.CityDB
-	} else if r.AsnDB != nil {
-		lookupDB = r.AsnDB
 	}
 
 	if lookupDB != nil {
@@ -163,7 +162,7 @@ func (r *Resolver) ResolveIP(ipStr string) (*db.IPInfo, error) {
 
 // ImportMMDBFile copies a given MMDB file to the ip_geo data directory.
 // It now accepts the absolute path to the ip_geo data directory.
-func ImportMMDBFile(srcPath string, destDataDir string) error {
+func ImportMMDBFile(srcPath string, destDataDir string) error { // Added destDataDir parameter
 	if err := os.MkdirAll(destDataDir, 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory %s: %w", destDataDir, err)
 	}
@@ -176,13 +175,8 @@ func ImportMMDBFile(srcPath string, destDataDir string) error {
 
 	// Determine destination filename based on source filename
 	destFileName := filepath.Base(srcPath)
-	if strings.Contains(strings.ToLower(destFileName), "city") {
-		destFileName = cityDBName
-	} else if strings.Contains(strings.ToLower(destFileName), "asn") {
-		destFileName = asnDBName
-	} else {
-		return fmt.Errorf("unrecognized MMDB file type for %s. Expected 'city' or 'asn' in filename.", srcPath)
-	}
+	// Always copy to cityDBName as it contains all info
+	destFileName = cityDBName
 
 	destPath := filepath.Join(destDataDir, destFileName) // Use destDataDir
 	destFile, err := os.Create(destPath)

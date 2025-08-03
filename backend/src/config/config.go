@@ -16,6 +16,10 @@ type Config struct {
 	DataDir        string
 	IPGeoDBPath    string
 	ImportIPDBFile string // Path to MMDB file for manual import via CLI
+
+	// CLI options for user management
+	CreateUserUsername string
+	CreateUserPassword string
 }
 
 // LoadConfig loads configuration from command-line flags and environment variables.
@@ -28,6 +32,10 @@ func LoadConfig() (*Config, error) {
 	flag.StringVar(&cfg.JWTSecret, "jwt-secret", os.Getenv("JWT_SECRET"), "Secret key for JWT signing (environment variable JWT_SECRET)")
 	flag.StringVar(&cfg.DataDir, "data-dir", "data", "Directory for application data (database, IP geo files)")
 	flag.StringVar(&cfg.ImportIPDBFile, "import-ip-db", "", "Path to an IPInfo MMDB file to import (e.g., /path/to/ipinfo-city.mmdb)")
+
+	// New flags for user creation
+	flag.StringVar(&cfg.CreateUserUsername, "create-user", "", "Create a new user with the given username")
+	flag.StringVar(&cfg.CreateUserPassword, "password", "", "Password for the new user (used with --create-user)")
 
 	flag.Parse()
 
@@ -61,12 +69,15 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to create IP geo database directory %s: %w", cfg.IPGeoDBPath, err)
 	}
 
-	// Validate JWT Secret
-	if cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET environment variable is not set. This is required for authentication.")
-	}
-	if len(cfg.JWTSecret) < 32 { // Recommend a reasonably long secret
-		fmt.Println("Warning: JWT_SECRET is too short. It should be at least 32 characters for security.")
+	// Validate JWT Secret only if not creating a user or importing IP DB
+	// If creating a user or importing IP DB, we might not need the server to run
+	if cfg.CreateUserUsername == "" && cfg.ImportIPDBFile == "" {
+		if cfg.JWTSecret == "" {
+			return nil, fmt.Errorf("JWT_SECRET environment variable is not set. This is required for authentication.")
+		}
+		if len(cfg.JWTSecret) < 32 { // Recommend a reasonably long secret
+			fmt.Println("Warning: JWT_SECRET is too short. It should be at least 32 characters for security.")
+		}
 	}
 
 	return cfg, nil

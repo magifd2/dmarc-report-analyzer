@@ -1,9 +1,9 @@
-2025/08/03 22:05:50 Database schema initialized/migrated successfully.
-2025/08/03 22:05:50 Successfully loaded IP Geo databases.
-2025/08/03 22:05:50 Warning: Static files directory not found at /Users/magi/works/dmarc-report-analyzer/static. Frontend may not be served.
-2025/08/03 22:05:50 Server starting on :8080
-2025/08/03 22:06:10 Processing uploaded file: google.com!nlink.jp!1751673600!1751759999.xml
-2025/08/03 22:06:10 Raw XML content for unmarshalling:
+2025/08/04 00:11:39 Database schema initialized/migrated successfully.
+2025/08/04 00:11:39 Successfully loaded IP Geo databases.
+2025/08/04 00:11:39 Warning: Static files directory not found at /Users/magi/works/dmarc-report-analyzer/static. Frontend may not be served.
+2025/08/04 00:11:39 Server starting on :8080
+2025/08/04 00:16:34 Processing uploaded file: google.com!nlink.jp!1751760000!1751846399.zip
+2025/08/04 00:16:34 Raw XML content for unmarshalling:
 <?xml version="1.0" encoding="UTF-8" ?>
 <feedback>
   <version>1.0</version>
@@ -11,10 +11,10 @@
     <org_name>google.com</org_name>
     <email>noreply-dmarc-support@google.com</email>
     <extra_contact_info>https://support.google.com/a/answer/2466580</extra_contact_info>
-    <report_id>9086643701630100383</report_id>
+    <report_id>391712619608441525</report_id>
     <date_range>
-      <begin>1751673600</begin>
-      <end>1751759999</end>
+      <begin>1751760000</begin>
+      <end>1751846399</end>
     </date_range>
   </report_metadata>
   <policy_published>
@@ -26,6 +26,148 @@
     <pct>100</pct>
     <np>reject</np>
   </policy_published>
+  <record>
+    <row>
+      <source_ip>209.85.220.69</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>nlink.jp</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+        <selector>google</selector>
+      </dkim>
+      <spf>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+  <record>
+    <row>
+      <source_ip>59.157.130.57</source_ip>
+      <count>2</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>fail</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>nlink.jp</header_from>
+    </identifiers>
+    <auth_results>
+      <spf>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+  <record>
+    <row>
+      <source_ip>209.85.220.69</source_ip>
+      <count>2</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>fail</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>nlink.jp</header_from>
+    </identifiers>
+    <auth_results>
+      <spf>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>
+2025/08/04 00:16:34 Resolved IPInfo for 209.85.220.69: &{IPAddress:209.85.220.69 CountryCode:US CountryName:United States CityName:N/A ASNNumber:15169 ASNOrganization:Google LLC Hostname:mail-sor-f69.google.com. ReversedHostname:.com.google.mail-sor-f69 ApexDomain:google.com LastUpdated:1754234194}
+2025/08/04 00:16:34 Resolved IPInfo for 59.157.130.57: &{IPAddress:59.157.130.57 CountryCode:JP CountryName:Japan CityName:N/A ASNNumber:10013 ASNOrganization:FreeBit Co.,Ltd. Hostname:vsmtp200.cm01.cloud-mail.jp. ReversedHostname:.jp.cloud-mail.cm01.vsmtp200 ApexDomain:cloud-mail.jp LastUpdated:1754234194}
+2025/08/04 00:16:45 Processing uploaded file: google.com!nlink.jp!1753228800!1753315199.zip
+2025/08/04 00:16:45 Raw XML content for unmarshalling:
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+  <version>1.0</version>
+  <report_metadata>
+    <org_name>google.com</org_name>
+    <email>noreply-dmarc-support@google.com</email>
+    <extra_contact_info>https://support.google.com/a/answer/2466580</extra_contact_info>
+    <report_id>15013825903316490902</report_id>
+    <date_range>
+      <begin>1753228800</begin>
+      <end>1753315199</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>nlink.jp</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>reject</p>
+    <sp>reject</sp>
+    <pct>100</pct>
+    <np>reject</np>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>209.85.220.41</source_ip>
+      <count>5</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>nlink.jp</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+        <selector>google</selector>
+      </dkim>
+      <spf>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+  <record>
+    <row>
+      <source_ip>209.85.220.69</source_ip>
+      <count>6</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>nlink.jp</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+        <selector>google</selector>
+      </dkim>
+      <spf>
+        <domain>nlink.jp</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
   <record>
     <row>
       <source_ip>209.85.220.69</source_ip>
@@ -66,35 +208,7 @@
       </spf>
     </auth_results>
   </record>
-  <record>
-    <row>
-      <source_ip>209.85.220.69</source_ip>
-      <count>1</count>
-      <policy_evaluated>
-        <disposition>none</disposition>
-        <dkim>pass</dkim>
-        <spf>pass</spf>
-      </policy_evaluated>
-    </row>
-    <identifiers>
-      <header_from>nlink.jp</header_from>
-    </identifiers>
-    <auth_results>
-      <dkim>
-        <domain>nlink.jp</domain>
-        <result>pass</result>
-        <selector>google</selector>
-      </dkim>
-      <spf>
-        <domain>nlink.jp</domain>
-        <result>pass</result>
-      </spf>
-    </auth_results>
-  </record>
 </feedback>
-2025/08/03 22:06:10 City lookup failed for 209.85.220.69: decoding value for country: maxminddb: cannot unmarshal United States (string) into type struct { ISOCode string "maxminddb:\"iso_code\""; Names map[string]string "maxminddb:\"names\"" }
-2025/08/03 22:06:10 ASN lookup failed for 209.85.220.69: decoding value for asn: maxminddb: cannot unmarshal AS15169 (string) into type uint
-2025/08/03 22:06:10 Error getting apex domain for mail-sor-f69.google.com.: publicsuffix: empty label in domain "mail-sor-f69.google.com.". Returning original domain.
-2025/08/03 22:06:10 City lookup failed for 59.157.130.57: decoding value for country: maxminddb: cannot unmarshal Japan (string) into type struct { ISOCode string "maxminddb:\"iso_code\""; Names map[string]string "maxminddb:\"names\"" }
-2025/08/03 22:06:10 ASN lookup failed for 59.157.130.57: decoding value for asn: maxminddb: cannot unmarshal AS10013 (string) into type uint
-2025/08/03 22:06:10 Error getting apex domain for vsmtp200.cm01.cloud-mail.jp.: publicsuffix: empty label in domain "vsmtp200.cm01.cloud-mail.jp.". Returning original domain.
+2025/08/04 00:16:45 Resolved IPInfo for 209.85.220.41: &{IPAddress:209.85.220.41 CountryCode:US CountryName:United States CityName:N/A ASNNumber:15169 ASNOrganization:Google LLC Hostname:mail-sor-f41.google.com. ReversedHostname:.com.google.mail-sor-f41 ApexDomain:google.com LastUpdated:1754234205}
+2025/08/04 00:16:45 Resolved IPInfo for 209.85.220.69: &{IPAddress:209.85.220.69 CountryCode:US CountryName:United States CityName:N/A ASNNumber:15169 ASNOrganization:Google LLC Hostname:mail-sor-f69.google.com. ReversedHostname:.com.google.mail-sor-f69 ApexDomain:google.com LastUpdated:1754234205}
+2025/08/04 00:16:45 Resolved IPInfo for 59.157.130.57: &{IPAddress:59.157.130.57 CountryCode:JP CountryName:Japan CityName:N/A ASNNumber:10013 ASNOrganization:FreeBit Co.,Ltd. Hostname:vsmtp200.cm01.cloud-mail.jp. ReversedHostname:.jp.cloud-mail.cm01.vsmtp200 ApexDomain:cloud-mail.jp LastUpdated:1754234205}

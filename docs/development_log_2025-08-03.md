@@ -12,7 +12,7 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Added necessary Go dependencies (`go-sqlite3`, `maxminddb-golang`, `publicsuffix`, `gorilla/mux`, `bcrypt`, `golang-jwt/jwt/v5`).
 
 *   **Configuration Management (`backend/src/config`):**
-    *   Implemented `config.go` to load application settings (port, database paths, JWT secret) from CLI flags and environment variables.
+    *   Implemented `config.go` to load application settings (port, database paths, JWT secret) from CLI flags and environment variables).
     *   Ensured `data` and `ip_geo` directories are created and paths are resolved correctly relative to the application root.
 
 *   **Utility Functions (`backend/src/util`):**
@@ -20,6 +20,7 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Implemented `dns.go` for local DNS PTR lookups.
     *   Implemented `domain.go` for domain name manipulation (reverse domain, apex domain extraction using `publicsuffix`).
     *   Implemented `error.go` for custom application error types.
+    *   **Enhanced `domain.go` to trim trailing dots from domain names to prevent `publicsuffix` errors.**
 
 *   **Database Layer (`backend/src/db`):**
     *   Defined SQLite database schema in `schema.go` including `reports`, `records`, `ip_info`, `ingestion_errors`, `users`, and `settings` tables.
@@ -34,6 +35,10 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Implemented `resolver.go` to load and query `.mmdb` files for GeoIP and ASN information.
     *   Implemented `ImportMMDBFile` function to allow **manual import of `.mmdb` files via CLI option (`--import-ip-db`)**.
     *   Successfully configured the application to load the provided `ipinfo_lite.mmdb` file.
+    *   **Refined `resolver.go` struct mappings based on actual MMDB dump results, ensuring accurate decoding of country, country code, ASN, and organization.**
+    *   **Explicitly set `CityName` to "N/A" as city-level data is not available in the current IPInfo Lite MMDB.**
+    *   **Added logging for resolved IPInfo to verify successful data retrieval.**
+    *   **Refactored `ip_geo` package to use a single MMDB file for both Geo and ASN lookups, simplifying the architecture.**
 
 *   **DMARC Report Parsing (`backend/src/core/parser`):**
     *   Implemented `types.go` defining Go structs for DMARC XML reports with strict validation logic.
@@ -44,6 +49,7 @@ This log details the progress made on the DMARC Report Analyzer application's ba
         *   Strict XML parsing and DMARC schema validation.
         *   Integration with `ip_geo.Resolver` for IP information enrichment.
         *   Saving parsed data to the SQLite database.
+    *   **Relaxed date range validation in `types.go` to allow `begin` and `end` timestamps to be equal, accommodating reports from various sources.**
 
 *   **Backend Server Core (`backend/src/main.go`):**
     *   Set up the main application entry point.
@@ -55,12 +61,22 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Implemented `POST /api/reports/upload` endpoint to handle multipart file uploads.
     *   Utilizes the `parser.ReportProcessor` to process uploaded DMARC reports.
     *   Returns detailed success/failure information, including ingestion errors.
+    *   **Refined API response to correctly reflect `skipped_count` for duplicate reports, providing clearer feedback to the user.**
 
 *   **Server Management Scripts:**
     *   Created `backend/start.sh` and `backend/stop.sh` scripts for reliable background server management (build, start with PID file, stop).
 
+*   **Debugging Tool:**
+    *   **Introduced `backend/debug/mmdb_dumper.go` for easier MMDB structure inspection.**
+
+*   **Git Management:**
+    *   **Excluded `external/` directory and `*.mmdb` files from Git tracking.**
+
+*   **GitHub Integration:**
+    *   **Created GitHub repository and pushed initial code.**
+
 *   **Successful End-to-End Test:**
-    *   Successfully uploaded a sample DMARC XML report (`google.com!nlink.jp!1751673600!1751759999.xml`) via `curl` to the running backend server. The report was parsed, IP information resolved, and data saved to the SQLite database without validation errors after resolving XML structure mapping issues.
+    *   Successfully uploaded sample DMARC XML, GZ, and ZIP reports via `curl` to the running backend server. Reports were parsed, IP information resolved, and data saved to the SQLite database without validation errors after resolving XML structure mapping issues and IP Geo decoding problems. Duplicate reports are now correctly skipped and reflected in the API response.
 
 ### Next Steps:
 

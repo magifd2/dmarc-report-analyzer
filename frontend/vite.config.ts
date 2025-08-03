@@ -13,4 +13,8 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: '../backend/src/static_frontend_dist',
+    emptyOutDir: true, // Ensure the output directory is cleaned before build
+  },
 })

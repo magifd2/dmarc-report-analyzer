@@ -8,6 +8,8 @@ APP_NAME="dmarc-report-analyzer-backend" # Name of the compiled executable
 PID_FILE="server.pid"
 LOG_FILE="server.log"
 BUILD_DIR="bin" # Directory for compiled executable
+FRONTEND_DIR="../frontend"
+STATIC_FRONTEND_DIR="src/static_frontend_dist" # Directory where frontend build artifacts will be placed (relative to backend/)
 
 # Check if the server is already running
 if [ -f "$PID_FILE" ]; then
@@ -21,15 +23,30 @@ if [ -f "$PID_FILE" ]; then
     fi
 fi
 
+echo "Building frontend..."
+# Build the frontend application
+cd "$FRONTEND_DIR" || exit 1
+npm install # Ensure dependencies are installed
+npm run build
+if [ $? -ne 0 ]; then
+    echo "Frontend build failed."
+    exit 1
+fi
+echo "Frontend build successful."
+
+# No need to copy, Vite now builds directly to ../backend/src/static_frontend_dist
+
+cd - > /dev/null # Go back to the previous directory (backend)
+
 echo "Building Go backend..."
 # Create build directory if it doesn't exist
 mkdir -p "$BUILD_DIR"
-# Build the Go application
-go build -o "$BUILD_DIR/$APP_NAME" src/main.go
+# Build the Go application with embed tag
+go build -tags=embed -o "$BUILD_DIR/$APP_NAME" src/main.go
 if [ $? -ne 0 ]; then
     echo "Go build failed."
     exit 1
-fi # Added missing fi
+fi
 echo "Build successful: $BUILD_DIR/$APP_NAME"
 
 echo "Starting server..."

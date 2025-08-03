@@ -1,11 +1,12 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors" // Import the cors package
@@ -17,6 +18,9 @@ import (
 	"dmarc-report-analyzer/backend/src/db"
 	"dmarc-report-analyzer/backend/src/ip_geo"
 )
+
+//go:embed static_frontend_dist/*
+var content embed.FS
 
 func main() {
 	// 1. Load Configuration
@@ -84,12 +88,12 @@ func main() {
 	api.RegisterAuthRoutes(router, authAPI)
 	api.RegisterUserRoutes(router, usersAPI)
 
-	// Serve static files (frontend)
-	staticPath := filepath.Join(cfg.DataDir, "..", "static") // Adjust path as needed
-	if _, err := os.Stat(staticPath); os.IsNotExist(err) {
-		log.Printf("Warning: Static files directory not found at %s. Frontend may not be served.", staticPath)
+	// Serve embedded static files (frontend)
+	staticFiles, err := fs.Sub(content, "static_frontend_dist")
+	if err != nil {
+		log.Fatalf("Failed to create sub FS: %v", err)
 	}
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir(staticPath)))
+	router.PathPrefix("/").Handler(http.FileServer(http.FS(staticFiles)))
 
 	// Configure CORS middleware
 	c := cors.AllowAll() // For development, allow all origins

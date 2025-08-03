@@ -1,193 +1,81 @@
-# DMARC Report Analyzer - 機能仕様書
+# DMARC Report Analyzer - Functional Specification
 
-## 1. 概要
+## 1. Overview
 
-DMARC Report Analyzer は、DMARC (Domain-based Message Authentication, Reporting, and Conformance) レポートを解析し、視覚的に分かりやすい形で表示するためのシングルページアプリケーションです。ユーザーはDMARCレポートファイル（XML、ZIP、TGZ、GZ形式）をアップロードし、メール認証の結果、送信元IPアドレス、ドメインなどの詳細な情報を確認できます。フィルタリング、ソート、データのエクスポート/インポート機能も提供し、DMARCポリシーの監視と改善を支援します。
+DMARC Report Analyzer is a self-contained local server application designed to parse and visualize DMARC (Domain-based Message Authentication, Reporting, and Conformance) aggregate reports. Users can upload DMARC report files (XML, ZIP, GZ formats) and view detailed information about email authentication results, source IP addresses, and domains. The application aims to assist in monitoring and improving DMARC policies.
 
-## 2. 技術スタック
+## 2. Technology Stack
 
-*   **フロントエンドフレームワーク:** なし (Vanilla JavaScript)
-*   **スタイリング:** Tailwind CSS
-*   **グラフ描画:** Chart.js, chartjs-adapter-date-fns
-*   **ファイル圧縮/解凍:** JSZip (ZIP), pako (GZ), js-tar (TGZ)
-*   **UI操作:** SortableJS (パネルのドラッグ&ドロップ)
-*   **IP情報取得:** ipinfo.io (外部API)
+*   **Frontend Framework:** React (TypeScript)
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS v3
+*   **Backend Language:** Go
+*   **Backend Web Framework:** Gorilla Mux
+*   **Database:** SQLite
+*   **File Compression/Decompression:** JSZip (for frontend ZIP handling), pako (for frontend GZ handling)
+*   **Graph Drawing:** Chart.js, chartjs-adapter-date-fns (Planned)
+*   **UI Operations:** SortableJS (for panel drag & drop) (Planned)
 
-## 3. 主要機能
+## 3. Key Features
 
-### 3.1. DMARCレポートの取り込み
+### 3.1. DMARC Report Ingestion
 
-*   **対応ファイル形式:** `.xml`, `.zip`, `.gz`, `.tgz`
-*   **取り込み方法:**
-    *   **ドラッグ&ドロップ:**
-        *   サイドバーの「DMARCレポート」エリア (`#drop-zone`) にファイルを直接ドラッグ&ドロップ。
-        *   ドラッグオーバー中はエリアのボーダーが青色 (`border-blue-400`) に、背景が濃い灰色 (`bg-gray-600`) に変化し、視覚的なフィードバックを提供する。
-        *   ドロップ後、ファイルが解析され、データがダッシュボードに反映される。
-    *   **ファイル選択:**
-        *   「DMARCレポート」エリアをクリックすると、隠されたファイル入力 (`#file-input`) がトリガーされ、ファイル選択ダイアログが開く。
-        *   `accept=".xml,.zip,.gz,.tgz"` 属性により、対応ファイル形式のみが選択可能。
-*   **処理状況表示:**
-    *   ファイル処理中はサイドバー下部のステータス表示エリア (`#processing-status`) に「処理中...」メッセージが表示される。
-    *   処理完了後、「完了: X件の新規レポートを追加、Y件の重複をスキップしました。」というメッセージが5秒間表示される。
-*   **重複レポートのスキップ:** 既に読み込まれているレポートIDを持つファイルはスキップされ、新規レポートのみが追加される。
+*   **Supported File Formats:** `.xml`, `.zip`, `.gz`
+*   **Ingestion Method:**
+    *   **File Upload:** Users can select and upload DMARC report files via a web interface.
+    *   **Drag & Drop:** (Planned) Users can drag and drop files directly onto a designated area for processing.
+    *   **File Selection Dialog:** (Planned) Users can click an area to open a file selection dialog.
+*   **Processing Status Display:** (Planned) Display real-time processing status and completion messages.
+*   **Duplicate Report Handling:** Reports with identical report IDs that have already been processed will be skipped, ensuring data integrity and preventing redundant entries.
 
-### 3.2. データ管理と永続化
+### 3.2. Data Management and Persistence
 
-*   **ローカルストレージへの保存:**
-    *   読み込まれたDMARCレポートデータ (`dmarcAnalyzerData`)、IP情報キャッシュ (`dmarcIpInfoCache`)、ダッシュボードのレイアウト設定 (`dmarcAnalyzerLayout`)、フィルター設定 (`dmarcAnalyzerFilters`) はブラウザのローカルストレージに自動的に保存される。
-    *   これにより、ブラウザを閉じてもデータや設定が保持される。
-*   **データ読込 (ZIP):**
-    *   サイドバーの「データ読込 (ZIP)」ボタン (`#import-btn`) をクリックすると、隠されたファイル入力 (`#import-input`) がトリガーされ、ZIPファイル選択ダイアログが開く。
-    *   選択されたZIPファイル内に `dmarc-analyzer-data.json` が含まれている場合、そのJSONデータが読み込まれ、既存データとマージされる。
-    *   インポート時も重複レポートはスキップされる。
-    *   エラー発生時はアラートが表示される。
-*   **データ保存 (ZIP):**
-    *   サイドバーの「データ保存 (ZIP)」ボタン (`#export-btn`) をクリックすると、現在の全レポートデータがJSON形式でZIPファイルとしてエクスポートされる。
-    *   ZIPファイル名は `dmarc-analyzer-data_YYYY-MM-DD.zip` となる。
-    *   エクスポートするデータがない場合はアラートが表示される。
-*   **全データ消去:**
-    *   サイドバーの「全データ消去」ボタン (`#clear-data-btn`) をクリックすると、確認ダイアログ (`#confirm-modal`) が表示される。
-    *   確認ダイアログで「実行」をクリックすると、ローカルストレージの全データが消去され、ページがリロードされる。この操作は元に戻せない。
+*   **Data Storage:** All parsed DMARC report data, including associated IP information, is stored persistently in a SQLite database file (`dmarc_reports.db`) managed by the backend.
+*   **IP Information Import:** IPInfo.io MMDB files (e.g., `ipinfo-city.mmdb`) can be manually imported via a command-line interface (CLI) option (`--import-ip-db`). This updates the IP geolocation and ASN data used by the application.
+*   **Data Import (ZIP):** (Planned) Users can import previously exported data from a ZIP file.
+*   **Data Export (ZIP):** (Planned) Users can export current report data as a JSON-formatted ZIP file.
+*   **Clear All Data:** (Planned) Users can clear all stored data from the database.
 
-### 3.3. フィルタリング機能
+### 3.3. Filtering Functionality (Planned)
 
-ダッシュボード上部のヘッダーエリア (`#main-header`) に配置され、解析対象のレポートデータを絞り込む。フィルター適用後、ダッシュボードの表示がリアルタイムで更新される。
+*   **Time Range Filter:** Filter reports by start and end dates, with preset options (e.g., Today, Last 7 Days, All Time).
+*   **DMARC Authentication Result Filters:** Filter by DMARC, SPF, and DKIM authentication results (Pass/Fail/None).
+*   **Disposition Filter:** Filter by DMARC policy disposition (None, Quarantine, Reject).
+*   **Keyword Filter:** Search for keywords within IP addresses, AS names, and reverse domain names.
+*   **Active Filter Display:** Show currently applied filters and provide options to clear them.
+*   **URL Hash State Management:** Manage filter settings via URL hash for bookmarking and sharing.
 
-*   **期間フィルター:**
-    *   **開始日/終了日入力 (`#start-date`, `#end-date`):** HTML5の `type="date"` を使用し、日付ピッカーから特定期間を指定してレポートを絞り込む。
-    *   **プリセットボタン (`.preset-btn`):**
-        *   「今日」「昨日」「7日」「30日」「90日」「1年」「今年」「去年」「全期間」のプリセット期間で簡単に絞り込みが可能。
-        *   クリックすると、対応する開始日/終了日入力が自動的に更新される。
-        *   選択中のプリセットボタンには `active` クラスが適用され、青い背景 (`bg-blue-500`) と白い文字 (`text-white`) で視覚的に強調される。
-        *   日付入力が手動で変更された場合、アクティブなプリセットは解除される。
-*   **DMARC認証結果フィルター:**
-    *   **DMARC (`#dmarc-filter`):** ドロップダウンで「すべて」「Pass」「Fail」を選択し、DMARC認証結果を絞り込む。
-    *   **SPF (Align) (`#spf-filter`):** ドロップダウンで「すべて」「Pass」「Fail」を選択し、SPFアライメント結果を絞り込む。
-    *   **DKIM (Align) (`#dkim-filter`):** ドロップダウンで「すべて」「Pass」「Fail」を選択し、DKIMアライメント結果を絞り込む。
-*   **Dispositionフィルター (`#disposition-filter`):** ドロップダウンで「すべて」「None」「Quarantine」「Reject」を選択し、DMARCポリシーの処理結果を絞り込む。
-*   **キーワードフィルター (`#keyword-filter`):**
-    *   テキスト入力フィールドで、IPアドレス、AS名、逆引きドメイン名に対してキーワード検索を行う。
-    *   入力値は小文字に変換されて検索に利用される。
-*   **アクションボタン:**
-    *   **適用 (`#filter-btn`):** 現在のフィルター設定を適用し、ダッシュボードを更新する。主に日付フィルターの手動変更後に使用される。
-    *   **リセット (`#reset-filter-btn`):** 全てのフィルター設定を初期状態（デフォルトの期間、すべての認証結果、キーワードなし）に戻し、UIも更新する。
-*   **適用中のフィルター表示 (`#active-filter-display`):**
-    *   現在適用されているフィルター条件（キーワード、AS、ドメイン、国、DMARC/SPF/DKIM/Disposition）がヘッダー下部にコンパクトに表示される。
-    *   表示されたフィルター条件の横に「(解除)」ボタンが表示され、クリックすると全てのドリルダウンフィルター（キーワード、AS、ドメイン、国、認証結果、Disposition）が解除される。
-*   **URLハッシュによる状態管理:**
-    *   フィルター設定はURLのハッシュ部分にJSON形式でエンコードされ、ブラウザの戻る/進むボタンやURL共有に対応する。
-    *   `history.pushState` および `history.replaceState` を使用して、ブラウザ履歴を適切に管理する。
-    *   `popstate` イベントリスナーにより、URLハッシュの変更が検知され、自動的にフィルターが適用される。
+### 3.4. Dashboard Display (Planned)
 
-### 3.4. ダッシュボード表示
+*   **Summary Cards:** Display total reports, total emails, and analysis period.
+*   **Panel Types:**
+    *   **Disposition Breakdown (Pie Chart):** Visualize DMARC policy disposition percentages.
+    *   **Time Series Trend (Line Chart):** Show daily email trends by disposition.
+    *   **Top 10 Source IPs (Bar Chart):** Display top source IPs by email count, with DMARC Pass/Fail breakdown.
+    *   **Summary Tables:** Aggregate data by Country, AS (Autonomous System), and Reverse Domain.
+    *   **Detailed Records Table:** List individual DMARC records with options for aggregation and sorting.
+*   **Panel Customization:** Users can show/hide and reorder dashboard panels via drag & drop.
 
-解析されたDMARCレポートの集計結果を複数のパネル (`.panel`) で表示する。各パネルはドラッグ&ドロップで並び替え可能で、表示/非表示を切り替えられる。
+### 3.5. Detailed Analysis Modal (Planned)
 
-*   **サマリーカード:**
-    *   `#total-reports`, `#total-emails`, `#total-domains`, `#date-range` の各要素に、それぞれ「総レポート数」「総メール数」「対象ドメイン数」「解析期間」が動的に表示される。
-    *   メール数などは `toLocaleString()` で3桁区切りでフォーマットされる。
-*   **パネルの種類:**
-    *   **Disposition別内訳 (Pie Chart) (`#dispositionChart`):**
-        *   DMARCポリシーの処理結果（None, Quarantine, Reject）の割合を円グラフで表示。
-        *   各セグメントの色は、None:緑、Reject:赤、Quarantine:オレンジに設定されている。
-        *   グラフのセグメントをクリックすると、そのDispositionでフィルタリングされ、ダッシュボード全体が更新される。
-    *   **時系列推移 (Line Chart) (`#timeseriesChart`):**
-        *   日ごとのメール数をDisposition別に折れ線グラフで表示。
-        *   Reject, Quarantine, None の各データセットが積み上げ (`stacked: true`) で表示される。
-        *   X軸は時間スケール (`type: 'time', unit: 'day'`) を使用し、日付の推移を表現する。
-    *   **送信元IPトップ10 (Bar Chart) (`#sourceIpChart`):**
-        *   メール数の多い送信元IPアドレス上位10件を横棒グラフで表示。
-        *   各棒はDMARC Pass/Failの内訳を積み上げ棒グラフで示す。
-        *   棒グラフをクリックすると、そのIPアドレスがキーワードフィルターに自動的に設定され、ダッシュボード全体が更新される。
-        *   ラベルにはIPアドレス、逆引きホスト名、AS名が表示される。
-    *   **サマリー (Table):**
-        *   **国別サマリー (`#country-summary-table-body`):** 送信元IPアドレスの国別集計。
-        *   **AS（組織）別サマリー (`#as-summary-table-body`):** 送信元IPアドレスのAS（自律システム）別集計。
-        *   **逆引きドメイン別サマリー (`#domain-summary-table-body`):** 送信元IPアドレスの逆引きドメイン別集計。
-        *   各サマリーテーブルは、キー（国名、AS名、ドメイン）、メール総数、DMARC/SPF/DKIMのPass/Fail割合（パーセンテージと実数）を表示する。
-        *   Passは緑色 (`pass` クラス)、Failは赤色 (`fail` クラス)、0%は灰色 (`zero` クラス) で表示される。
-        *   テーブルの行 (`.summary-table-row`) をクリックすると、その国/AS/ドメインでフィルタリングされ、ダッシュボード全体が更新される。選択中の行には `active` クラスが適用され、薄い青色の背景 (`bg-blue-100`) で強調される。
-        *   キーのテキスト (`.drilldown-key`) は青色で、ホバー時に下線が表示される。
-    *   **詳細レコード (Table) (`#records`):**
-        *   個々のDMARCレコードの詳細を一覧表示する。
-        *   **レコード合算表示トグル (`#aggregation-toggle`):**
-            *   カスタムスタイルのトグルスイッチ (`.toggle-switch`) で、レコードを合算して表示するか（デフォルト）、個別に表示するかを切り替えられる。
-            *   合算表示の場合、同じ送信元IP、認証結果、Fromドメインを持つレコードのメール数が合計され、1行にまとめられる。
-            *   合算されたレコードには、複数のレポートから合算されたことを示すアイコンが表示される。
-            *   トグルの状態はローカルストレージに保存され、次回アクセス時に復元される。
-        *   **ソート機能:**
-            *   各カラムヘッダー (`.sortable-th`) をクリックすることで、そのカラムを基準に昇順/降順でソートできる。
-            *   ソート方向は、ヘッダー内のソートインジケーター (`.sort-indicator`) で「▲」（昇順）または「▼」（降順）で示される。
-            *   ソート状態はローカルストレージに保存される。
-        *   **表示カラム:**
-            *   **送信元情報:** IPアドレス (`font-mono`, `clickable`), 逆引きホスト名 (`ip-info`), AS名 (`ip-info`, `font-semibold`)。
-            *   **メール数:** `toLocaleString()` でフォーマットされる。
-            *   **Disposition:** `pass`, `fail`, `none`, `reject`, `quarantine` に応じて異なる色 (`text-green-600`, `text-red-600`, `text-yellow-600`, `text-red-700`, `text-orange-600`) と太字で表示され、クリック可能。
-            *   **DKIM/SPF:** 認証結果に応じて色分けされる。
-            *   **Fromドメイン:** クリック可能。
-            *   **レポート組織名/レポートID:** 合算表示がオフの場合のみ表示される。
-        *   **アクション:** 「分析」ボタン (`.analyze-btn`) が各行に配置され、クリックするとそのレコードの詳細分析モーダルが表示される。
-        *   パフォーマンスのため、表示されるレコードは最大500件に制限される。
+*   **Display Content:** Show detailed information for a selected DMARC record, including report origin, IP analysis, authentication details (SPF/DKIM results, alignment), and policy evaluation.
+*   **Improvement Advice:** Provide context-sensitive advice based on DMARC authentication results.
+*   **Gemini Prompt Generation:** Automatically generate a detailed prompt for consulting Gemini based on the analysis results.
 
-### 3.5. ダッシュボードのカスタマイズ
+### 3.6. Confirmation Modal (Planned)
 
-*   **パネルの表示/非表示:**
-    *   サイドバーの「パネル表示設定」エリア (`#panel-visibility-controls`) に、各パネルのタイトルとカスタムスタイルのトグルスイッチが表示される。
-    *   トグルスイッチを操作することで、対応するパネル (`.panel`) の `display` スタイルが `none` または空に切り替わり、表示/非表示が制御される。
-    *   各パネルヘッダーの右上にある目のアイコン (`.visibility-toggle`) をクリックすることでも、そのパネルを非表示にできる。
-*   **パネルの並び替え:**
-    *   各パネルのヘッダー右上にあるグリッドアイコン (`.panel-handle`) をドラッグ&ドロップすることで、ダッシュボードグリッド (`#dashboard-grid`) 内でのパネルの配置を自由に並び替えられる。
-    *   SortableJS ライブラリがこの機能を提供している。
-*   **レイアウトの永続化:** パネルの表示設定と並び順はローカルストレージ (`dmarcAnalyzerLayout`) に保存され、次回アクセス時に復元される。
+*   A generic confirmation dialog for destructive operations (e.g., clearing data).
 
-### 3.6. 詳細分析モーダル (`#analysis-modal`)
+## 4. External Integration
 
-「詳細レコード」パネルの「分析」ボタンをクリックすると表示される。半透明のオーバーレイ (`bg-opacity-50`) と共に中央に表示される。
+*   **ipinfo.io:** Used for IP geolocation and ASN information. MMDB files are manually imported via CLI.
 
-*   **表示内容:**
-    *   **レポート発行元情報:** 合算レコードの場合、そのレコードに貢献した全てのレポートの組織名とレポートIDがリスト表示される。スクロール可能な領域 (`max-h-40`) で表示される。
-    *   **分析対象IP:** IPアドレス、逆引きホスト名、AS情報。
-    *   **判定結果サマリー:** Fromヘッダー、DMARC評価（成功/失敗が色分け）、最終処理結果。
-    *   **認証詳細:** SPFとDKIMそれぞれの認証結果、アライメント結果、関連ドメイン、DKIMセレクタが表示される。結果は `pass` (緑), `fail` (赤), `N/A` (灰色) などに応じて色分けされる。
-*   **改善アドバイス:**
-    *   DMARC認証結果に基づき、具体的な改善アドバイスが生成され、表示される。
-    *   アドバイスの重要度に応じて、背景色とボーダーの色が変化する（成功: 緑 `bg-green-100`, 警告: 黄 `bg-yellow-100`, 危険: 赤 `bg-red-100`）。
-*   **Gemini相談用プロンプト:**
-    *   現在の分析結果（IP、Fromドメイン、DMARC評価、処理結果、SPF/DKIM詳細、送信元情報、DMARCポリシー）を基にした、Geminiに質問するための詳細なプロンプトが自動生成される。
-    *   プロンプトは読み取り専用のテキストエリアに表示される。
-    *   「相談用プロンプトをコピー」ボタン (`#copy-prompt-btn`) をクリックすると、プロンプトがクリップボードにコピーされる。コピー成功後、ボタンのテキストが「コピーしました！」に変わり、一時的に無効化される。
-*   **閉じるボタン (`#close-modal-btn`):** モーダルを閉じる。
+## 5. UI/UX Considerations (Planned)
 
-### 3.7. 確認モーダル (`#confirm-modal`)
-
-「全データ消去」などの破壊的な操作の前に表示される汎用的な確認ダイアログ。半透明のオーバーレイと共に中央に表示される。
-
-*   **表示内容:**
-    *   警告アイコン（赤色のSVG）。
-    *   タイトル (`#confirm-modal-title`) とメッセージ (`#confirm-modal-message`) が動的に設定される。
-    *   「実行」ボタン (`#confirm-modal-confirm-btn`) と「キャンセル」ボタン (`#confirm-modal-cancel-btn`)。
-*   **動作:**
-    *   「実行」をクリックすると、登録されたコールバック関数が実行され、モーダルが閉じる。
-    *   「キャンセル」をクリックすると、モーダルが閉じる。
-
-## 4. 外部連携
-
-*   **ipinfo.io:**
-    *   送信元IPアドレスの地理情報（国、AS名、逆引きホスト名）を取得するために利用される。
-    *   API呼び出しはブラウザのローカルストレージ (`dmarcIpInfoCache`) にキャッシュされ、同じIPアドレスに対する重複リクエストを避ける。
-    *   APIのレートリミットを考慮し、リクエスト間に200msの遅延が設けられている。
-
-## 5. UI/UXの考慮事項
-
-*   **レスポンシブデザイン:** Tailwind CSSのユーティリティクラス (`md:`, `lg:`, `xl:`) を活用し、様々な画面サイズに対応したレイアウトが提供される。
-*   **カスタムスクロールバー:** `::-webkit-scrollbar` 擬似要素を使用して、幅、トラック、サムのスタイルがカスタマイズされ、視認性とデザインの一貫性が向上している。
-*   **カスタムトグルスイッチ:**
-    *   「レコードを合算して表示」や「パネル表示設定」で使用されるトグルスイッチは、標準のチェックボックスを隠し、カスタムの `slider` 要素と `before` 擬似要素で視覚的に表現されている。
-    *   チェック状態に応じて背景色とノブの位置が変化する。
-*   **フォント:** Google Fonts から `Inter` (英語) と `Noto Sans JP` (日本語) が読み込まれ、`body` に適用されている。これにより、多言語対応と視認性の高いテキスト表示が実現されている。
-*   **インタラクティブな要素の視覚的フィードバック:**
-    *   `summary-table-row` クラスを持つテーブル行は、ホバー時に薄い青色 (`hover:bg-blue-50`) に変化し、クリックで選択された状態ではより濃い青色 (`active`, `bg-blue-100`) になる。
-    *   `clickable` クラスを持つ要素（IPアドレス、Dispositionなど）は、ホバー時に下線 (`hover:underline`) が表示され、クリック可能であることを示す。
-    *   `drilldown-key` クラスを持つ要素（サマリーテーブルのキー）は、青色 (`text-blue-600`) で太字 (`font-semibold`) で表示され、ホバー時に下線が表示される。
-*   **確認ダイアログ:** データ消去などの破壊的な操作には確認ダイアログを挟むことで、ユーザーの誤操作を防止し、安全性を高めている。
-*   **空の状態の表示:** データが読み込まれていない、またはフィルターによってデータがゼロになった場合、各ダッシュボード要素（サマリーカード、チャート、テーブル）には「データがありません」といったメッセージが表示される。
+*   **Responsive Design:** Adapt to various screen sizes.
+*   **Custom Scrollbars:** Enhanced visual consistency.
+*   **Custom Toggle Switches:** For interactive controls.
+*   **Fonts:** Use Inter and Noto Sans JP for multilingual support.
+*   **Interactive Element Feedback:** Visual cues for clickable and selected elements.
+*   **Confirmation Dialogs:** Prevent accidental destructive operations.
+*   **Empty State Display:** Provide clear messages when no data is available or filtered.

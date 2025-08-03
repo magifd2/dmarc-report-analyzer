@@ -47,3 +47,12 @@ external/
 
 # Data directory
 data/
+
+# Log files
+*.log
+
+# Backend binaries
+backend/bin/
+
+# Embedded frontend assets
+backend/src/static_frontend_dist/

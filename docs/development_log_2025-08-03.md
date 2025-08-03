@@ -14,6 +14,7 @@ This log details the progress made on the DMARC Report Analyzer application's ba
 *   **Configuration Management (`backend/src/config`):**
     *   Implemented `config.go` to load application settings (port, database paths, JWT secret) from CLI flags and environment variables).
     *   Ensured `data` and `ip_geo` directories are created and paths are resolved correctly relative to the application root.
+    *   **Added `--create-user` and `--password` CLI options for user management.**
 
 *   **Utility Functions (`backend/src/util`):**
     *   Implemented `hash.go` for SHA256 hashing.
@@ -28,6 +29,8 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Implemented Go structs for database models in `models.go`.
     *   Implemented `repository.go` for common database CRUD operations.
     *   Implemented `user.go` for basic user management (create, get, update password, delete).
+    *   **Refactored `repository.go` to include `GetUserByUsername` and `UpdateUser` methods, centralizing user database operations.**
+    *   **Cleaned up `user.go` to remove redundant `GetUserByUsername` and `UpdateUserPassword` methods.**
 
 *   **IP Geographical Information (`backend/src/ip_geo`):**
     *   Transitioned from MaxMind GeoLite2 to **IPInfo.io free database (.mmdb format)**.
@@ -56,30 +59,56 @@ This log details the progress made on the DMARC Report Analyzer application's ba
     *   Integrated configuration, database, IP resolver, and report processor.
     *   Implemented handling for the `--import-ip-db` CLI option.
     *   Set up a basic HTTP router using `gorilla/mux`.
+    *   **Integrated user creation logic via CLI options.**
+    *   **Added CORS middleware to the backend for frontend integration.**
+    *   **Implemented single executable packaging using Go's `embed` package.**
+    *   **Configured `main.go` to serve embedded frontend assets and handle SPA routing by falling back to `index.html` for unknown paths.**
 
 *   **DMARC Report Upload API (`backend/src/api/reports.go`):**
     *   Implemented `POST /api/reports/upload` endpoint to handle multipart file uploads.
     *   Utilizes the `parser.ReportProcessor` to process uploaded DMARC reports.
     *   Returns detailed success/failure information, including ingestion errors.
     *   **Refined API response to correctly reflect `skipped_count` for duplicate reports, providing clearer feedback to the user.**
+    *   **Implemented `GET /api/reports` for listing DMARC reports with pagination and sorting.**
+    *   **Implemented `GET /api/reports/{id}` for fetching detailed DMARC report information.**
+
+*   **Authentication and User API (`backend/src/api/auth.go`, `backend/src/api/users.go`, `backend/src/auth/auth.go`):**
+    *   **Implemented `POST /api/auth/login` for user authentication and JWT generation.**
+    *   **Implemented `POST /api/users/change-password` for authenticated users to change their password.**
+    *   **Added `github.com/golang-jwt/jwt/v5` dependency.**
+    *   **Added detailed logging to authentication process for debugging.**
+
+*   **Frontend (`frontend/`):**
+    *   **Migrated from Create React App to Vite for improved development experience and stability.**
+    *   **Integrated Tailwind CSS v3 with Vite using standard setup.**
+    *   **Implemented basic DMARC report upload form.**
+    *   **Implemented DMARC report list display.**
+    *   **Configured Vite proxy to handle API requests to the backend, resolving CORS issues.**
+    *   **Created `frontend/start.sh` and `frontend/stop.sh` for managing the Vite development server, including robust PID management.**
+    *   **Configured Vite to build frontend assets directly into `backend/src/static_frontend_dist`.**
 
 *   **Server Management Scripts:**
     *   Created `backend/start.sh` and `backend/stop.sh` scripts for reliable background server management (build, start with PID file, stop).
+    *   **Updated `backend/start.sh` to include frontend build step and ensure correct `embed` path.**
 
 *   **Debugging Tool:**
     *   **Introduced `backend/debug/mmdb_dumper.go` for easier MMDB structure inspection.**
 
 *   **Git Management:**
     *   **Excluded `external/` directory and `*.mmdb` files from Git tracking.**
+    *   **Excluded `data/` directory from Git tracking.**
 
 *   **GitHub Integration:**
     *   **Created GitHub repository and pushed initial code.**
 
 *   **Successful End-to-End Test:**
     *   Successfully uploaded sample DMARC XML, GZ, and ZIP reports via `curl` to the running backend server. Reports were parsed, IP information resolved, and data saved to the SQLite database without validation errors after resolving XML structure mapping issues and IP Geo decoding problems. Duplicate reports are now correctly skipped and reflected in the API response.
+    *   **Successfully tested `GET /api/reports`, `GET /api/reports/{id}`, `POST /api/auth/login`, `POST /api/users/change-password` API endpoints.**
+    *   **Successfully verified frontend UI display, upload functionality, and report list display after resolving build and serving issues.**
+    *   **Successfully verified SPA routing fallback to `index.html`.**
 
 ### Next Steps:
 
-*   Implement remaining backend API endpoints (e.g., for listing reports, fetching report details, user authentication).
-*   Develop the frontend application using React (TypeScript) and Tailwind CSS.
-*   Implement the packaging of the entire application into a single executable.
+*   Update `docs/development_policy.md` with Tailwind CSS versioning strategy.
+*   Update `README.md` with project overview, build/run instructions.
+*   Consider further feature additions, testing, or deployment strategies.

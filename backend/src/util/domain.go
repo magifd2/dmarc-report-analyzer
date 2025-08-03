@@ -18,9 +18,13 @@ func ReverseDomain(domain string) string {
 }
 
 // GetApexDomain extracts the apex domain (eTLD+1) from a given domain name.
-// e.g., "www.example.com" -> "example.com"
-// e.g., "mail.sub.example.co.jp" -> "example.co.jp"
+// It also handles trailing dots in the domain name.
+// e.g., "www.example.com." -> "example.com"
+// e.g., "mail.sub.example.co.jp." -> "example.co.jp"
 func GetApexDomain(domain string) string {
+	// Trim trailing dot if present
+	domain = strings.TrimSuffix(domain, ".")
+
 	apex, err := publicsuffix.EffectiveTLDPlusOne(domain)
 	if err != nil {
 		log.Printf("Error getting apex domain for %s: %v. Returning original domain.", domain, err)

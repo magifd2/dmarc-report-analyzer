@@ -72,21 +72,27 @@ func (api *ReportsAPI) UploadReports(w http.ResponseWriter, r *http.Request) {
 		// Process the file using the parser
 		ingestionErrors := api.Processor.ProcessUploadedFile(part, part.FileName())
 
+		// Iterate through ingestionErrors to correctly count processed, skipped, and failed
 		if len(ingestionErrors) > 0 {
-			totalFailed++
 			for _, errInfo := range ingestionErrors {
-				fileErrors = append(fileErrors, map[string]string{
-					"filename":   errInfo.Filename,
-					"error_type": errInfo.ErrorType,
-					"message":    errInfo.Message,
-				})
-				// Save ingestion error to DB
+				if errInfo.ErrorType == "SKIPPED_DUPLICATE" {
+					totalSkipped++
+				} else {
+					totalFailed++
+					fileErrors = append(fileErrors, map[string]string{
+						"filename":   errInfo.Filename,
+						"error_type": errInfo.ErrorType,
+						"message":    errInfo.Message,
+					})
+				}
+				// Save ingestion error to DB regardless of type (skipped or failed)
 				if err := api.DBRepo.SaveIngestionError(&errInfo); err != nil {
 					log.Printf("Failed to save ingestion error to DB: %v", err)
 				}
 			}
 		} else {
-			totalProcessed++ // Assuming no errors means processed successfully
+			// If no ingestion errors, it means the file was processed successfully
+			totalProcessed++
 		}
 	}
 
@@ -94,7 +100,7 @@ func (api *ReportsAPI) UploadReports(w http.ResponseWriter, r *http.Request) {
 		"status":           "success",
 		"message":          "Reports processing completed.",
 		"processed_count":  totalProcessed,
-		"skipped_count":    totalSkipped, // TODO: Implement actual skipped count from parser
+		"skipped_count":    totalSkipped,
 		"failed_files_count": totalFailed,
 		"file_errors":      fileErrors,
 	}

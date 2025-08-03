@@ -99,7 +99,7 @@ func (f *Feedback) Validate() error {
 	if f.ReportMetadata.DateRange.Begin == 0 || f.ReportMetadata.DateRange.End == 0 {
 		return fmt.Errorf("report_metadata.date_range (begin or end) is missing or zero")
 	}
-	if f.ReportMetadata.DateRange.Begin >= f.ReportMetadata.DateRange.End {
+	if f.ReportMetadata.DateRange.Begin > f.ReportMetadata.DateRange.End {
 		return fmt.Errorf("report_metadata.date_range.begin must be less than date_range.end")
 	}
 	// Check if timestamps are reasonable (e.g., not in the future, not too far in the past)

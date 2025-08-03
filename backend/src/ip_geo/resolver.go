@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -103,40 +104,44 @@ func (r *Resolver) ResolveIP(ipStr string) (*db.IPInfo, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Resolve City/Country
-	if r.CityDB != nil {
-		var cityRecord struct {
-			Country struct {
-				ISOCode string `maxminddb:"iso_code"`
-				Names   map[string]string `maxminddb:"names"`
-			} `maxminddb:"country"`
-			City struct {
-				Names map[string]string `maxminddb:"names"`
-			} `maxminddb:"city"`
-		}
-		err := r.CityDB.Lookup(ip, &cityRecord)
-		if err != nil {
-			log.Printf("City lookup failed for %s: %v", ipStr, err)
-		} else {
-			ipInfo.CountryCode = cityRecord.Country.ISOCode
-			ipInfo.CountryName = cityRecord.Country.Names["en"] // Assuming English name
-			ipInfo.CityName = cityRecord.City.Names["en"]
-		}
+	// Use one of the DBs (e.g., CityDB) to lookup all available info
+	var record struct {
+		CountryCode string `maxminddb:"country_code"`
+		CountryName string `maxminddb:"country"`
+		ASN         string `maxminddb:"asn"` // It's a string like "AS15169"
+		Organization string `maxminddb:"as_name"`
 	}
 
-	// Resolve ASN
-	if r.AsnDB != nil {
-		var asnRecord struct {
-			ASN        uint `maxminddb:"asn"`
-			Organization string `maxminddb:"organization"`
-		}
-		err := r.AsnDB.Lookup(ip, &asnRecord)
+	// Prioritize CityDB for lookup, fallback to AsnDB if CityDB is not loaded
+	var lookupDB *maxminddb.Reader
+	if r.CityDB != nil {
+		lookupDB = r.CityDB
+	} else if r.AsnDB != nil {
+		lookupDB = r.AsnDB
+	}
+
+	if lookupDB != nil {
+		err := lookupDB.Lookup(ip, &record)
 		if err != nil {
-			log.Printf("ASN lookup failed for %s: %v", ipStr, err)
+			log.Printf("IP lookup failed for %s: %v", ipStr, err)
 		} else {
-			ipInfo.ASNNumber = int(asnRecord.ASN)
-			ipInfo.ASNOrganization = asnRecord.Organization
+			ipInfo.CountryCode = record.CountryCode
+			ipInfo.CountryName = record.CountryName
+			ipInfo.CityName = "N/A" // City information is not available in this MMDB
+
+			// Convert ASN string (e.g., "AS15169") to int
+			if strings.HasPrefix(record.ASN, "AS") {
+				asnNum, parseErr := strconv.Atoi(record.ASN[2:])
+				if parseErr == nil {
+					ipInfo.ASNNumber = asnNum
+				} else {
+					log.Printf("Failed to parse ASN number from string '%s': %v", record.ASN, parseErr)
+				}
+			}
+			ipInfo.ASNOrganization = record.Organization
 		}
+	} else {
+		log.Printf("No IP Geo database loaded for lookup.")
 	}
 
 	// Resolve Hostname (PTR), ReversedHostname, and ApexDomain
@@ -150,12 +155,15 @@ func (r *Resolver) ResolveIP(ipStr string) (*db.IPInfo, error) {
 		ipInfo.ApexDomain = "N/A"
 	}
 
+	// Log the resolved IPInfo for verification
+	log.Printf("Resolved IPInfo for %s: %+v", ipStr, ipInfo)
+
 	return ipInfo, nil
 }
 
 // ImportMMDBFile copies a given MMDB file to the ip_geo data directory.
 // It now accepts the absolute path to the ip_geo data directory.
-func ImportMMDBFile(srcPath string, destDataDir string) error { // Added destDataDir parameter
+func ImportMMDBFile(srcPath string, destDataDir string) error {
 	if err := os.MkdirAll(destDataDir, 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory %s: %w", destDataDir, err)
 	}

@@ -114,7 +114,14 @@ func (rp *ReportProcessor) processSingleXML(xmlContent []byte, originalFilename 
 	}
 	if exists {
 		log.Printf("Report with hash %s already exists. Skipping.", xmlHash)
-		return nil // No errors, just skipped
+		// Return a specific error type for skipped duplicates
+		return []db.IngestionError{{
+			Filename:  originalFilename,
+			XMLHash:   xmlHash,
+			ErrorType: "SKIPPED_DUPLICATE",
+			Message:   "Report with this hash already exists. Skipped.",
+			Timestamp: time.Now().Unix(),
+		}}
 	}
 
 	// 5. XMLパースと厳密なバリデーション
@@ -147,7 +154,8 @@ func (rp *ReportProcessor) processSingleXML(xmlContent []byte, originalFilename 
 	// Collect unique IPs to resolve them efficiently
 	uniqueIPs := make(map[string]struct{})
 	for _, record := range feedback.Records {
-		uniqueIPs[record.Row.SourceIP] = struct{}{}
+	
+uniqueIPs[record.Row.SourceIP] = struct{}{}
 	}
 
 	for ipStr := range uniqueIPs {
